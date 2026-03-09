@@ -1,9 +1,24 @@
-import { Button } from "./_components/ui/button";
+import { UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-const HomePage = () => {
+const HomePage = async () => {
+  const { userId } = await auth();
+  if (!userId) {
+    redirect("/login");
+  }
   return (
     <div>
-      <Button>Click me</Button>
+      <UserButton
+        showName
+        appearance={{
+          elements: {
+            userButtonTrigger: {
+              className: "bg-primary text-primary-foreground",
+            },
+          },
+        }}
+      />
     </div>
   );
 };
