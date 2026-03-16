@@ -29,6 +29,7 @@ body {
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
+  --color-danger: oklch(0.634 0.228 28.1);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
