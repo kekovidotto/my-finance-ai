@@ -1,6 +1,7 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowDownUp } from "lucide-react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -15,6 +16,7 @@ import {
   TransactionType,
 } from "@/generated/prisma/browser";
 
+import { addTransaction } from "../_actions/add-transaction";
 import { MoneyInput } from "./money-input";
 import { Button } from "./ui/button";
 import { DatePicker } from "./ui/date-picker";
@@ -50,9 +52,13 @@ const formSchema = z.object({
   name: z.string().trim().min(1, {
     message: "Nome é obrigatório",
   }),
-  amount: z.string().trim().min(1, {
-    message: "Valor é obrigatório",
-  }),
+  amount: z
+    .number({
+      error: "Valor é obrigatório",
+    })
+    .positive({
+      message: "Valor deve ser maior que 0",
+    }),
   type: z.nativeEnum(TransactionType, {
     error: "Tipo é obrigatório",
   }),
@@ -70,11 +76,13 @@ const formSchema = z.object({
 type FormSchema = z.infer<typeof formSchema>;
 
 export const AddTransactionButton = () => {
+  const [dialogIsOpen, setDialogOpen] = useState(false);
+
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      amount: "",
+      amount: 10,
       category: TransactionCategory.OTHER,
       type: TransactionType.EXPENSE,
       paymentMethod: TransactionPaymentMethod.CASH,
@@ -82,12 +90,26 @@ export const AddTransactionButton = () => {
     },
   });
 
-  const onSubmit = (data: FormSchema) => {
-    console.log(data);
+  const onSubmit = async (data: FormSchema) => {
+    try {
+      await addTransaction(data);
+      setDialogOpen(false);
+      form.reset();
+    } catch (error) {
+      console.error("Erro ao adicionar transação:", error);
+    }
   };
 
   return (
-    <Dialog onOpenChange={(open) => !open && form.reset()}>
+    <Dialog
+      open={dialogIsOpen}
+      onOpenChange={(open) => {
+        setDialogOpen(open);
+        if (!open) {
+          form.reset();
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button className="rounded-full font-bold">
           Adicionar Transação
@@ -128,12 +150,16 @@ export const AddTransactionButton = () => {
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="form-rhf-demo-amount">Valor</FieldLabel>
                   <MoneyInput
-                    {...field}
                     ref={field.ref}
                     id="form-rhf-demo-amount"
                     aria-invalid={fieldState.invalid}
                     placeholder="Digite o valor..."
                     autoComplete="off"
+                    onValueChange={({ floatValue }) =>
+                      field.onChange(floatValue)
+                    }
+                    onBlur={field.onBlur}
+                    disabled={field.disabled}
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
